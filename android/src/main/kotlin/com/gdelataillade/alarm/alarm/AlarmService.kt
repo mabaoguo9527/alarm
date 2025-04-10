@@ -92,28 +92,31 @@ class AlarmService : Service() {
             return START_NOT_STICKY
         }
 
-        val notification = notificationHandler.buildNotification(
-            alarmSettings.notificationSettings,
-            alarmSettings.androidFullScreenIntent,
-            pendingIntent,
-            id
-        )
+        // 只有 content 不为空字符串时才启动
+        if (alarmSettings.notificationSettings.body.isNotBlank()) {
+            val notification = notificationHandler.buildNotification(
+                alarmSettings.notificationSettings,
+                alarmSettings.androidFullScreenIntent,
+                pendingIntent,
+                id
+            )
 
-        // Start the service in the foreground
-        try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                try {
+            // Start the service in the foreground
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    try {
+                        startAlarmService(id, notification)
+                    } catch (e: ForegroundServiceStartNotAllowedException) {
+                        Log.e(TAG, "Foreground service start not allowed", e)
+                        return START_NOT_STICKY
+                    }
+                } else {
                     startAlarmService(id, notification)
-                } catch (e: ForegroundServiceStartNotAllowedException) {
-                    Log.e(TAG, "Foreground service start not allowed", e)
-                    return START_NOT_STICKY
                 }
-            } else {
-                startAlarmService(id, notification)
+            } catch (e: Exception) {
+                Log.e(TAG, "Exception while starting foreground service: ${e.message}", e)
+                return START_NOT_STICKY
             }
-        } catch (e: Exception) {
-            Log.e(TAG, "Exception while starting foreground service: ${e.message}", e)
-            return START_NOT_STICKY
         }
 
         // Check if an alarm is already ringing
